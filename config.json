@@ -1,0 +1,29 @@
+{
+    "input_url" : "https://cityio.media.mit.edu/api/table/grasbrook_test/",
+    "output_url": "https://cityio.media.mit.edu/api/table/update/grasbrook_test/walkability",
+
+    "input_urls" : [
+        "https://cityio.media.mit.edu/api/table/grasbrook_silber/",
+        "https://cityio.media.mit.edu/api/table/grasbrook_lach/",
+        "https://cityio.media.mit.edu/api/table/grasbrook_sturm/",
+        "https://cityio.media.mit.edu/api/table/grasbrook_dreizehen/",
+        "https://cityio.media.mit.edu/api/table/grasbrook_herings/",
+        "https://cityio.media.mit.edu/api/table/grasbrook_eis/",
+        "https://cityio.media.mit.edu/api/table/grasbrook_mantel/"
+    ],
+    "output_urls" : [
+        "https://cityio.media.mit.edu/api/table/update/grasbrook_silber/stormwater",
+        "https://cityio.media.mit.edu/api/table/update/grasbrook_lach/stormwater",
+        "https://cityio.media.mit.edu/api/table/update/grasbrook_sturm/stormwater",
+        "https://cityio.media.mit.edu/api/table/update/grasbrook_dreizehen/stormwater",
+        "https://cityio.media.mit.edu/api/table/update/grasbrook_herings/",
+        "https://cityio.media.mit.edu/api/table/update/grasbrook_eis/",
+        "https://cityio.media.mit.edu/api/table/update/grasbrook_mantel/"
+    ],
+    
+    "input_crs" : 4326, 
+    "compute_crs": 32632,
+    "output_crs": 4326,
+
+    "walking_speed_kph" : 4
+}

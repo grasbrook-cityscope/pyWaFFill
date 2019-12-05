@@ -1,0 +1,10 @@
+{
+    "street" : {
+        "0.8" : ["str_ramp"],
+        "0.6" : ["str_stairs"]
+    },
+    "openspacetypes" : {
+        "0.8" : ["promenade","green_space"],
+        "0":["daycare_playground","playground","schoolyard","exhibition_space","recycling_center","water","athletic_field"]
+    }
+}
