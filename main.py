@@ -144,9 +144,13 @@ def appendPolyFeatures(filledGrid, cityio):
         toPoint = proj.transform(toPoint[0],toPoint[1])
         pointlist.append(toPoint)
 
-        
+        if filledGrid[idx] is None:
+            print("Warning: Grid cell"+str(idx)+"is None!")
+            value = 1000
+        else:
+            value = filledGrid[idx].timeTo
 
-        resultjson += PolyToGeoJSON(pointlist, idit, {"walktime":filledGrid[idx].timeTo}) # append feature
+        resultjson += PolyToGeoJSON(pointlist, idit, {"walktime":value}) # append feature
         resultjson +=","
 
         idit+=1
@@ -156,6 +160,7 @@ def appendPolyFeatures(filledGrid, cityio):
 def getSeedPoints(blduse, cityio: Table):
     seedPoints = []
 
+    # TODO: don't add multiple seedpoints for touching buildings
     for index,cell in enumerate(cityio.grid):
         
         if not "type" in cityio.mapping[cell[cityio.typeidx]]: continue
@@ -184,9 +189,10 @@ class ResultCell:
     def __str__(self):
         return str(self.timeTo)
 
-def getNeighbouringGridCells(index,gridcols,gridrows, neighbourhood=4):
+def getNeighbouringGridCells(index, gridcols, gridrows, neighbourhood=4):
     x = index % gridcols
-    y = (index - x) / gridcols
+    y = index // gridcols
+    assert((index - x) / gridcols == index // gridcols)
 
     if gridcols < 2 or gridrows < 2:
         raise ValueError("grid too small!")
@@ -220,17 +226,20 @@ def getTimeForCell(cellindex,cityio: Table):
 
     celltype = cityio.mapping[cell[cityio.typeidx]]["type"]
 
-    # TODO calculate time via distance and type factor and move speed
+    # calculate time via distance and type factor and move speed
+    walkspeed_metersperminute = getFromCfg("walking_speed_kph") / 60 * 1000
+    distance = cityio.cellSize # TODO: only valid for 4-neighbourhoods!
+    walktime_minutes= 1/walkspeed_metersperminute * distance
 
     if celltype == "street":
-        return 1.0
+        return 1.0 * walktime_minutes
     elif celltype == "open_space":
-        return 1.0
+        return 1.0 * walktime_minutes
     elif celltype == "building":
-        return 10.0 #float("inf")
+        return 10.0 * walktime_minutes#float("inf")
 
     elif  celltype == "empty":
-        return 2.0
+        return 2.0 * walktime_minutes
 
     else:
         raise ValueError("what is "+celltype)
@@ -249,6 +258,9 @@ def floodFill(seedpoints, cityio: Table):
         seedCell.timeTo = 0
 
         dijkstra(filledGrid, seedIndex, cityio, neighbourhood)
+
+        for cell in filledGrid:
+            cell.beenThere = False
 
     return filledGrid
 
@@ -277,7 +289,7 @@ def dijkstra(filledGrid, startindex, cityio, neighbourhood):
             if not neighbourIndex in openlist and not neighbourCell.beenThere:
                 openlist.append(neighbourIndex)
             
-            # calculate time needed to go there
+            # calculate time needed to go to neighbour
             newTime = curCell.timeTo + getTimeForCell(neighbourIndex, cityio) # consider types of neighbours 
             if newTime < neighbourCell.timeTo:
                 neighbourCell.timeTo = newTime # set value for neighbours into gridcell
@@ -333,23 +345,19 @@ def makeCSV(filledGrid, filepath, cityio):
                 file.write(",")
             file.write("\n")
             
-
 def run(endpoint=-1, token=None):
     cityio = Table.fromCityIO(getCurrentState("header",endpoint, token))
     if not cityio:
         print("couldn't load input_url!")
         exit()
 
-
     cityio.updateGrid(endpoint, token)
 
     seedpoints = getSeedPoints("educational",cityio)
     filledGrid = floodFill(seedpoints, cityio)
     # print(filledGrid)
-    # makeCSV(filledGrid,"test.csv",cityio)
+    makeCSV(filledGrid,"test.csv",cityio)
     resultjson = makeGeoJSON(filledGrid,cityio)
-    
-
     # writeFile("output.geojson", resultjson)
 
     # Also post result to cityIO
@@ -366,7 +374,6 @@ if __name__ == "__main__":
     print("endpoint",args.endpoint)
     oldHash = ""
 
-
     try:
         with open("token.txt") as f:
             token=f.readline()
@@ -382,7 +389,3 @@ if __name__ == "__main__":
         else:
             print("waiting for grid change")
             sleep(5)
-    
-
-
-    
