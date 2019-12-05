@@ -108,7 +108,10 @@ def PolyToGeoJSON(points, id, properties):
     ret += "}}"
     return ret
 
-
+def writeFile(filepath, data):
+    f= open(filepath,"w+")
+    f.write(data)
+    
 def appendPolyFeatures(filledGrid, cityio):
     gridData = cityio.grid
     idit= 0
@@ -342,12 +345,12 @@ def run(endpoint=-1, token=None):
 
     seedpoints = getSeedPoints("educational",cityio)
     filledGrid = floodFill(seedpoints, cityio)
-    print(filledGrid)
-    makeCSV(filledGrid,"test.csv",cityio)
+    # print(filledGrid)
+    # makeCSV(filledGrid,"test.csv",cityio)
     resultjson = makeGeoJSON(filledGrid,cityio)
     
 
-    writeFile("output.geojson", resultjson)
+    # writeFile("output.geojson", resultjson)
 
     # Also post result to cityIO
     data = json.loads(resultjson)
