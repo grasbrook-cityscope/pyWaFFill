@@ -160,7 +160,6 @@ def appendPolyFeatures(filledGrid, cityio):
 def getSeedPoints(blduse, cityio: Table):
     seedPoints = []
 
-    # TODO: don't add multiple seedpoints for touching buildings
     for index,cell in enumerate(cityio.grid):
         
         if not "type" in cityio.mapping[cell[cityio.typeidx]]: continue
@@ -175,12 +174,45 @@ def getSeedPoints(blduse, cityio: Table):
                 cityio.mapping[cell[cityio.typeidx]]["bld_useUpper"] == blduse:
                 seedPoints.append(index)
 
+    # don't add multiple seedpoints for touching buildings
+    seedPoints = mergeSeedpoints(seedPoints,cityio)
+
     return seedPoints
+
+def mergeSeedpoints(seedpoints, cityio):
+    groups = []
+
+    # find out, which seedpoints are adjacent, and joined in lines or groups
+    for seedpoint in seedpoints:
+        alreadyseen = False
+        for group in groups:
+            if seedpoint in group:
+                alreadyseen = True
+        if alreadyseen:
+            continue
+
+        newgroup = set()
+        recursiveFindConnected(seedpoint, seedpoints, cityio, newgroup)
+        groups.append(newgroup)
+
+    print(groups)
+
+    # remove all but one per disconnected group
+    newSeedPoints = []
+    for group in groups:
+        seed = group.pop()
+        newSeedPoints.append(seed)
+    return newSeedPoints
+
+def recursiveFindConnected(currentCell, seedpoints, cityio, newgroup):
+    newgroup.add(currentCell)
+    for neighbourCell in getNeighbouringGridCells(currentCell, cityio.ncols, cityio.nrows):
+        if neighbourCell in seedpoints and neighbourCell not in newgroup:
+            recursiveFindConnected(neighbourCell, seedpoints, cityio, newgroup)
 
 class ResultCell:
     beenThere = False
     timeTo = float("inf")
-    # typeTo = None
 
     def __init__(self, index):
         self.index = index
@@ -189,20 +221,14 @@ class ResultCell:
         return str(self.timeTo)
     def __str__(self):
         return str(self.timeTo)
-
     def __gt__(self, cell2):
         return self.timeTo > cell2.timeTo
-
     def __ge__(self, cell2):
         return self.timeTo >= cell2.timeTo
-
     def __lt__(self, cell2):
         return self.timeTo < cell2.timeTo
-
     def __le__(self, cell2):
         return self.timeTo <= cell2.timeTo
-
-        
     def __eq__(self, cell2):
         return self.timeTo == cell2.timeTo
     def __ne__(self, cell2):
@@ -257,6 +283,8 @@ def getTimeForCell(cellindex,cityio: Table):
             return 20.0 * walktime_minutes
         return 1.0 * walktime_minutes
     elif celltype == "building":
+        if cityio.mapping[cell[cityio.typeidx]]["bld_useGround"] == getFromCfg("useOfInterest") or cityio.mapping[cell[cityio.typeidx]]["bld_useUpper"] == getFromCfg("useOfInterest"):
+            return 0.0
         return 10.0 * walktime_minutes#float("inf")
 
     elif  celltype == "empty":
@@ -268,7 +296,7 @@ def getTimeForCell(cellindex,cityio: Table):
 def floodFill(seedpoints, cityio: Table):
     filledGrid = [None]*len(cityio.grid)
 
-    neighbourhood = 4 # orthognal, alternative: 8 including diagonal
+    neighbourhood = 4 # orthognal, alternative: 8 including diagonal NOT IMPLEMENTED
 
     # start from each seedpoint
     for seedIndex in seedpoints:
