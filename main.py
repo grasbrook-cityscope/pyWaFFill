@@ -4,6 +4,7 @@ import requests
 from pyproj import Transformer
 from time import sleep
 import argparse
+from sortedcontainers import SortedList
 
 class Table:
     cellSize = 0
@@ -157,7 +158,8 @@ def appendPolyFeatures(filledGrid, cityio):
 
     return resultjson
 
-def getSeedPoints(blduse, cityio: Table):
+def getSeedPoints(cityio: Table):
+    blduse = getFromCfg("useOfInterest")
     seedPoints = []
 
     for index,cell in enumerate(cityio.grid):
@@ -222,17 +224,9 @@ class ResultCell:
     def __str__(self):
         return str(self.timeTo)
     def __gt__(self, cell2):
-        return self.timeTo > cell2.timeTo
-    def __ge__(self, cell2):
-        return self.timeTo >= cell2.timeTo
-    def __lt__(self, cell2):
-        return self.timeTo < cell2.timeTo
-    def __le__(self, cell2):
-        return self.timeTo <= cell2.timeTo
+        return float(self.timeTo) > float(cell2.timeTo)
     def __eq__(self, cell2):
-        return self.timeTo == cell2.timeTo
-    def __ne__(self, cell2):
-        return self.timeTo != cell2.timeTo
+        return float(self.timeTo) == cell2.timeTo
 
 def getNeighbouringGridCells(index, gridcols, gridrows, neighbourhood=4):
     x = index % gridcols
@@ -283,10 +277,14 @@ def getTimeForCell(cellindex,cityio: Table):
             return 20.0 * walktime_minutes
         return 1.0 * walktime_minutes
     elif celltype == "building":
-        if cityio.mapping[cell[cityio.typeidx]]["bld_useGround"] == getFromCfg("useOfInterest") or cityio.mapping[cell[cityio.typeidx]]["bld_useUpper"] == getFromCfg("useOfInterest"):
-            return 0.0
-        return 10.0 * walktime_minutes#float("inf")
+        cellUseGround = cityio.mapping[cell[cityio.typeidx]]["bld_useGround"]
+        cellUseUpper = cityio.mapping[cell[cityio.typeidx]]["bld_useUpper"]
+        useOfInterest = getFromCfg("useOfInterest")
 
+        if cellUseGround == useOfInterest or cellUseUpper == useOfInterest:
+            return 0.0
+
+        return 10.0 * walktime_minutes#float("inf")
     elif  celltype == "empty":
         return 2.0 * walktime_minutes
 
@@ -308,25 +306,20 @@ def floodFill(seedpoints, cityio: Table):
 
         dijkstra(filledGrid, seedIndex, cityio, neighbourhood)
 
-        for cell in filledGrid:
+        for index,cell in enumerate(filledGrid):
+            if cell is None:    # TODO this just prevents exceptions, not empty cells
+                cell = ResultCell(index)
             cell.beenThere = False
 
     return filledGrid
 
 def dijkstra(filledGrid, startindex, cityio, neighbourhood):
-
-    from sortedcontainers import SortedList
+    print("finding paths from seedcell",startindex)
     
     openlist = SortedList()
-
     openlist.add(filledGrid[startindex])
-
-    print("finding paths from seedcell",startindex)
-
     while len(openlist) > 0:
         # more cells to process
-
-        print(len(openlist))
         curCell = openlist.pop(0) # always pick cell with lowest time first
 
         curCell.beenThere = True
@@ -337,16 +330,14 @@ def dijkstra(filledGrid, startindex, cityio, neighbourhood):
             if filledGrid[neighbourIndex] is None:
                 filledGrid[neighbourIndex] = ResultCell(neighbourIndex)
             neighbourCell = filledGrid[neighbourIndex]
-
-            if not neighbourCell in openlist and not neighbourCell.beenThere:
-                openlist.add(neighbourCell)
             
             # calculate time needed to go to neighbour
             newTime = curCell.timeTo + getTimeForCell(neighbourIndex, cityio) # consider types of neighbours 
             if newTime < neighbourCell.timeTo:
-                neighbourCell.timeTo = newTime # set value for neighbours into gridcell
-            
-            # neighbourCell.beenThere = True
+                if neighbourCell in openlist:
+                    openlist.remove(neighbourCell) # remove first and add again, to resort
+                neighbourCell.timeTo = float(newTime) # set value for neighbours into gridcell
+                openlist.add(neighbourCell) # cell was cahnged, it can propagate change
 
 def recursiveNeighbourset(curCellIndex, filledGrid, neighbourhood, cityio: Table):
     if filledGrid[curCellIndex] is None:
@@ -405,7 +396,7 @@ def run(endpoint=-1, token=None):
 
     cityio.updateGrid(endpoint, token)
 
-    seedpoints = getSeedPoints("educational",cityio)
+    seedpoints = getSeedPoints(cityio)
     filledGrid = floodFill(seedpoints, cityio)
     # print(filledGrid)
     makeCSV(filledGrid,"test.csv",cityio)
