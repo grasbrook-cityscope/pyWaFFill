@@ -120,6 +120,14 @@ def appendPolyFeatures(filledGrid, cityio):
 
     proj = Transformer.from_crs(getFromCfg("compute_crs"), getFromCfg("output_crs"))
     for idx in range(len(gridData)):
+        if filledGrid[idx] is None:
+            print("Warning: Grid cell"+str(idx)+"is None!")
+            continue
+        value = filledGrid[idx].timeTo
+        if(value == float("inf")):
+            print("Warning: Grid cell"+str(idx)+"is inf!")
+            continue
+
         x = idx % cityio.ncols
         y = idx // cityio.ncols
 
@@ -138,12 +146,6 @@ def appendPolyFeatures(filledGrid, cityio):
         toPoint = cityio.Local2Geo(x,y+1)
         toPoint = proj.transform(toPoint[0],toPoint[1])
         pointlist.append(toPoint)
-
-        if filledGrid[idx] is None:
-            print("Warning: Grid cell"+str(idx)+"is None!")
-            value = 1000
-        else:
-            value = filledGrid[idx].timeTo
 
         resultjson += PolyToGeoJSON(pointlist, idit, {"walktime":value}) # append feature
         resultjson +=","
@@ -268,7 +270,7 @@ def getTimeForCell(cellindex,cityio: Table):
         return 1.0 * walktime_minutes
     elif celltype == "open_space":
         if cityio.mapping[cell[cityio.typeidx]]["os_type"] == "water":
-            return 20.0 * walktime_minutes
+            return float("inf")#20.0 * walktime_minutes
         return 1.0 * walktime_minutes
     elif celltype == "building":
         cellUseGround = cityio.mapping[cell[cityio.typeidx]]["bld_useGround"]
@@ -278,7 +280,7 @@ def getTimeForCell(cellindex,cityio: Table):
         if cellUseGround == useOfInterest or cellUseUpper == useOfInterest:
             return 0.0
 
-        return 10.0 * walktime_minutes#float("inf")
+        return float("inf")#10.0 * walktime_minutes#float("inf")
     elif  celltype == "empty":
         return 2.0 * walktime_minutes
 
@@ -300,11 +302,9 @@ def floodFill(seedpoints, cityio: Table):
 
         dijkstra(filledGrid, seedIndex, cityio, neighbourhood)
 
-        for index,cell in enumerate(filledGrid):
-            if cell is None:    # TODO this just prevents exceptions, not empty cells
-                cell = ResultCell(index)
-                print("cell"+index+"is none!")
-            cell.beenThere = False
+        for cell in filledGrid:
+            if cell:
+                cell.beenThere = False
 
     return filledGrid
 
@@ -397,7 +397,6 @@ def run(endpoint=-1, token=None):
     makeCSV(filledGrid,"test.csv",cityio)
     resultjson = makeGeoJSON(filledGrid,cityio)
     # writeFile("output.geojson", resultjson)
-
     # Also post result to cityIO
     data = json.loads(resultjson)
     gridHash = getCurrentState("meta/hashes/grid",endpoint, token)
