@@ -182,12 +182,31 @@ class ResultCell:
     timeTo = float("inf")
     # typeTo = None
 
-    # def __init__(self, typeTo):
-    #     self.typeTo = typeTo
+    def __init__(self, index):
+        self.index = index
+
     def __repr__(self):
         return str(self.timeTo)
     def __str__(self):
         return str(self.timeTo)
+
+    def __gt__(self, cell2):
+        return self.timeTo > cell2.timeTo
+
+    def __ge__(self, cell2):
+        return self.timeTo >= cell2.timeTo
+
+    def __lt__(self, cell2):
+        return self.timeTo < cell2.timeTo
+
+    def __le__(self, cell2):
+        return self.timeTo <= cell2.timeTo
+
+        
+    def __eq__(self, cell2):
+        return self.timeTo == cell2.timeTo
+    def __ne__(self, cell2):
+        return self.timeTo != cell2.timeTo
 
 def getNeighbouringGridCells(index, gridcols, gridrows, neighbourhood=4):
     x = index % gridcols
@@ -234,6 +253,8 @@ def getTimeForCell(cellindex,cityio: Table):
     if celltype == "street":
         return 1.0 * walktime_minutes
     elif celltype == "open_space":
+        if cityio.mapping[cell[cityio.typeidx]]["os_type"] == "water":
+            return 20.0 * walktime_minutes
         return 1.0 * walktime_minutes
     elif celltype == "building":
         return 10.0 * walktime_minutes#float("inf")
@@ -252,7 +273,7 @@ def floodFill(seedpoints, cityio: Table):
     # start from each seedpoint
     for seedIndex in seedpoints:
         if filledGrid[seedIndex] is None:
-            filledGrid[seedIndex] = ResultCell()
+            filledGrid[seedIndex] = ResultCell(seedIndex)
         seedCell = filledGrid[seedIndex]
         seedCell.beenThere = True
         seedCell.timeTo = 0
@@ -265,29 +286,32 @@ def floodFill(seedpoints, cityio: Table):
     return filledGrid
 
 def dijkstra(filledGrid, startindex, cityio, neighbourhood):
-    openlist = []    
-    openlist.append(startindex)
+
+    from sortedcontainers import SortedList
+    
+    openlist = SortedList()
+
+    openlist.add(filledGrid[startindex])
+
+    print("finding paths from seedcell",startindex)
 
     while len(openlist) > 0:
         # more cells to process
 
         print(len(openlist))
-        curCellIndex = openlist.pop()
+        curCell = openlist.pop(0) # always pick cell with lowest time first
 
-        if filledGrid[curCellIndex] is None:
-            filledGrid[curCellIndex] = ResultCell()
-        curCell = filledGrid[curCellIndex]
         curCell.beenThere = True
 
-        neighboursIndices = getNeighbouringGridCells(curCellIndex, cityio.ncols, cityio.nrows, neighbourhood)
+        neighboursIndices = getNeighbouringGridCells(curCell.index, cityio.ncols, cityio.nrows, neighbourhood)
 
         for neighbourIndex in neighboursIndices:
             if filledGrid[neighbourIndex] is None:
-                filledGrid[neighbourIndex] = ResultCell()
+                filledGrid[neighbourIndex] = ResultCell(neighbourIndex)
             neighbourCell = filledGrid[neighbourIndex]
 
-            if not neighbourIndex in openlist and not neighbourCell.beenThere:
-                openlist.append(neighbourIndex)
+            if not neighbourCell in openlist and not neighbourCell.beenThere:
+                openlist.add(neighbourCell)
             
             # calculate time needed to go to neighbour
             newTime = curCell.timeTo + getTimeForCell(neighbourIndex, cityio) # consider types of neighbours 
