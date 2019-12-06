@@ -118,16 +118,10 @@ def appendPolyFeatures(filledGrid, cityio):
     idit= 0
     resultjson = ""
 
-
     proj = Transformer.from_crs(getFromCfg("compute_crs"), getFromCfg("output_crs"))
     for idx in range(len(gridData)):
         x = idx % cityio.ncols
         y = idx // cityio.ncols
-
-        if x >= cityio.ncols-1:    # don't consider last row
-            continue
-        if y >= cityio.nrows-1:    # don't consider last column
-            break
 
         pointlist = []
 
@@ -309,6 +303,7 @@ def floodFill(seedpoints, cityio: Table):
         for index,cell in enumerate(filledGrid):
             if cell is None:    # TODO this just prevents exceptions, not empty cells
                 cell = ResultCell(index)
+                print("cell"+index+"is none!")
             cell.beenThere = False
 
     return filledGrid
