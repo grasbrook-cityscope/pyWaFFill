@@ -28,3 +28,7 @@ jobs:
       run: |
         pip install pytest
         pytest
+        case $? in
+          5) exit 0 ;;
+          *) exit ;;
+        esac
