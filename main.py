@@ -285,7 +285,7 @@ def getTimeForCell(cellindex, useofinterest, cityio: Table):
             return float("inf") # buildings are impassable
 
     elif  celltype == "empty":
-        return 2.0 * walktime_minutes
+        return float("inf") # empty space is impassable, users should set something
 
     else:
         raise ValueError("what is "+celltype)
