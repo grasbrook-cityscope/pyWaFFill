@@ -25,6 +25,6 @@
     "compute_crs": 32632,
     "output_crs": 4326,
 
-    "useOfInterest" : "educational",
+    "usesOfInterest" : ["educational","culture"],
     "walking_speed_kph" : 4
 }

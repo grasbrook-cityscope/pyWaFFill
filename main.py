@@ -29,11 +29,6 @@ class Table:
     def updateGrid(self,endpoint=-1, token=None):
         self.grid = getCurrentState("grid", endpoint, token)
 
-    def RoadAt(self, gridData, typejs, x, y):
-        cell = gridData[x + y * self.ncols] # content of cell at (x,y)
-        if not "type" in self.mapping[cell[self.typeidx]]: return False
-        return self.mapping[cell[self.typeidx]]["type"] in typejs["type"]
-
     def Local2Geo(self, x, y):
         bearing = self.tablerotation
 
@@ -55,13 +50,13 @@ def getFromCfg(key : str) -> str:
 
 def getCurrentState(topic="", endpoint=-1, token=None):
     if endpoint == -1 or endpoint == None:
-        get_address = getFromCfg("input_url")+topic
+        get_address = getFromCfg("input_url")+topic # default endpoint
     else:
-        get_address = getFromCfg("input_urls")[endpoint]+topic
+        get_address = getFromCfg("input_urls")[endpoint]+topic # user endpoint
 
     if token is None:
         r = requests.get(get_address, headers={'Content-Type': 'application/json'})
-    else:
+    else: # with authentication
         r = requests.get(get_address, headers={'Content-Type': 'application/json', 'Authorization': 'Bearer '+token})
     
     if not r.status_code == 200:
@@ -72,13 +67,13 @@ def getCurrentState(topic="", endpoint=-1, token=None):
 
 def sendToCityIO(data, endpoint=-1, token=None):
     if endpoint == -1 or endpoint == None:
-        post_address = getFromCfg("output_url")
+        post_address = getFromCfg("output_url") # default endpoint
     else:
-        post_address = getFromCfg("output_urls")[endpoint]
+        post_address = getFromCfg("output_urls")[endpoint] # user endpoint
 
     if token is None:
         r = requests.post(post_address, json=data, headers={'Content-Type': 'application/json'})
-    else:
+    else: # with authentication
         r = requests.post(post_address, json=data, headers={'Content-Type': 'application/json', 'Authorization': 'Bearer '+token})
     print(r)
     if not r.status_code == 200:
@@ -99,13 +94,13 @@ def PolyToGeoJSON(points, id, properties):
 
     ret += "]]},"
     ret += "\"properties\": {"
-    for key in properties:
+    for key in properties: # properties to string
         ret += "\""+key+"\""
         ret += ":"
         ret += str(properties[key])
         ret += ","
-    ret=ret[:-1] # delete trailing comma after properties
-    #ret += str(properties)
+    if len(properties) > 0:
+        ret=ret[:-1] # delete trailing comma after properties
     ret += "}}"
     return ret
 
@@ -113,49 +108,51 @@ def writeFile(filepath, data):
     f= open(filepath,"w+")
     f.write(data)
     
-def appendPolyFeatures(filledGrid, cityio):
-    gridData = cityio.grid
-    idit= 0
+def appendPolyFeatures(filledGrids, cityio):
+    filledGrid = list(filledGrids.values())[0]
     resultjson = ""
 
     proj = Transformer.from_crs(getFromCfg("compute_crs"), getFromCfg("output_crs"))
-    for idx in range(len(gridData)):
-        if filledGrid[idx] is None:
-            print("Warning: Grid cell"+str(idx)+"is None!")
-            continue
-        value = filledGrid[idx].timeTo
-        if(value == float("inf")):
-            print("Warning: Grid cell"+str(idx)+"is inf!")
-            continue
-
+    for idx in range(len(filledGrid)):
         x = idx % cityio.ncols
         y = idx // cityio.ncols
 
+        properties = {}
+        for blduse in filledGrids:
+            if filledGrids[blduse][idx] is None:
+                print("Warning: Grid cell", str(idx), "is None!")
+                continue # non-initialised cell, skip
+            value = filledGrids[blduse][idx].timeTo
+            if(value == float("inf")):
+                print("Warning: Grid cell", str(idx), "is inf!")
+                continue # inf can't be parsed as geojson, skip this type
+            properties[blduse] = value
+        if len(properties) == 0:
+            continue # no properties, so don't create a feature
+
         pointlist = []
 
-        fromPoint = cityio.Local2Geo(x,y)
+        fromPoint = cityio.Local2Geo(x,y) # upper left
         fromPoint = proj.transform(fromPoint[0],fromPoint[1])
         pointlist.append(fromPoint)
 
-        toPoint = cityio.Local2Geo(x+1,y)
+        toPoint = cityio.Local2Geo(x+1,y) # upper right
         toPoint = proj.transform(toPoint[0],toPoint[1])
         pointlist.append(toPoint)
-        toPoint = cityio.Local2Geo(x+1,y+1)
+        toPoint = cityio.Local2Geo(x+1,y+1) # bottom right
         toPoint = proj.transform(toPoint[0],toPoint[1])
         pointlist.append(toPoint)
-        toPoint = cityio.Local2Geo(x,y+1)
+        toPoint = cityio.Local2Geo(x,y+1) # bottom left
         toPoint = proj.transform(toPoint[0],toPoint[1])
         pointlist.append(toPoint)
 
-        resultjson += PolyToGeoJSON(pointlist, idit, {"walktime":value}) # append feature
+        resultjson += PolyToGeoJSON(pointlist, idx, properties) # append feature, closes loop
         resultjson +=","
 
-        idit+=1
-
+    resultjson = resultjson[:-1] # trim trailing comma
     return resultjson
 
-def getSeedPoints(cityio: Table):
-    blduse = getFromCfg("useOfInterest")
+def getSeedPoints(blduse, cityio: Table):
     seedPoints = []
 
     for index,cell in enumerate(cityio.grid):
@@ -209,19 +206,18 @@ def recursiveFindConnected(currentCell, seedpoints, cityio, newgroup):
             recursiveFindConnected(neighbourCell, seedpoints, cityio, newgroup)
 
 class ResultCell:
-    beenThere = False
     timeTo = float("inf")
 
     def __init__(self, index):
         self.index = index
 
-    def __repr__(self):
+    def __repr__(self): # required for list to str
         return str(self.timeTo)
-    def __str__(self):
+    def __str__(self): # required for printing
         return str(self.timeTo)
-    def __gt__(self, cell2):
+    def __gt__(self, cell2): # required for sorting
         return float(self.timeTo) > float(cell2.timeTo)
-    def __eq__(self, cell2):
+    def __eq__(self, cell2): # required for sorting
         return float(self.timeTo) == cell2.timeTo
 
 def getNeighbouringGridCells(index, gridcols, gridrows, neighbourhood=4):
@@ -255,7 +251,10 @@ def getNeighbouringGridCells(index, gridcols, gridrows, neighbourhood=4):
 
     return neighboursIndexList
 
-def getTimeForCell(cellindex,cityio: Table):
+def getTimeForCell(cellindex, useofinterest, cityio: Table):
+    """ calculate the walking time it takes to get to the cell with index cellindex from any of it's direct neighbours
+        returns float, if the requested cell is impassable, returns inf """
+
     cell = cityio.grid[cellindex]
     if not "type" in cityio.mapping[cell[cityio.typeidx]]: return float("inf")
 
@@ -266,28 +265,32 @@ def getTimeForCell(cellindex,cityio: Table):
     distance = cityio.cellSize # TODO: only valid for 4-neighbourhoods!
     walktime_minutes= 1/walkspeed_metersperminute * distance
 
+    # TODO: get speed factors from typedefs.json
     if celltype == "street":
         return 1.0 * walktime_minutes
+
     elif celltype == "open_space":
         if cityio.mapping[cell[cityio.typeidx]]["os_type"] == "water":
-            return float("inf")#20.0 * walktime_minutes
-        return 1.0 * walktime_minutes
+            return float("inf") # water is impassable
+        else:
+            return 1.0 * walktime_minutes
+
     elif celltype == "building":
         cellUseGround = cityio.mapping[cell[cityio.typeidx]]["bld_useGround"]
         cellUseUpper = cityio.mapping[cell[cityio.typeidx]]["bld_useUpper"]
-        useOfInterest = getFromCfg("useOfInterest")
 
-        if cellUseGround == useOfInterest or cellUseUpper == useOfInterest:
+        if cellUseGround == useofinterest or cellUseUpper == useofinterest:
             return 0.0
+        else:
+            return float("inf") # buildings are impassable
 
-        return float("inf")#10.0 * walktime_minutes#float("inf")
     elif  celltype == "empty":
         return 2.0 * walktime_minutes
 
     else:
         raise ValueError("what is "+celltype)
 
-def floodFill(seedpoints, cityio: Table):
+def floodFill(seedpoints, useofinterest, cityio: Table):
     filledGrid = [None]*len(cityio.grid)
 
     neighbourhood = 4 # orthognal, alternative: 8 including diagonal NOT IMPLEMENTED
@@ -297,27 +300,20 @@ def floodFill(seedpoints, cityio: Table):
         if filledGrid[seedIndex] is None:
             filledGrid[seedIndex] = ResultCell(seedIndex)
         seedCell = filledGrid[seedIndex]
-        seedCell.beenThere = True
         seedCell.timeTo = 0
 
-        dijkstra(filledGrid, seedIndex, cityio, neighbourhood)
-
-        for cell in filledGrid:
-            if cell:
-                cell.beenThere = False
+        dijkstra(filledGrid, seedIndex, useofinterest, cityio, neighbourhood)
 
     return filledGrid
 
-def dijkstra(filledGrid, startindex, cityio, neighbourhood):
-    print("finding paths from seedcell",startindex)
+def dijkstra(filledGrid, startindex, useofinterest, cityio: Table, neighbourhood):
+    print("finding paths from seedcell", startindex)
     
-    openlist = SortedList()
+    openlist = SortedList() # sort cells increasing by time needed
     openlist.add(filledGrid[startindex])
-    while len(openlist) > 0:
-        # more cells to process
-        curCell = openlist.pop(0) # always pick cell with lowest time first
 
-        curCell.beenThere = True
+    while len(openlist) > 0: # more cells to process
+        curCell = openlist.pop(0) # always pick cell with lowest time first
 
         neighboursIndices = getNeighbouringGridCells(curCell.index, cityio.ncols, cityio.nrows, neighbourhood)
 
@@ -327,51 +323,19 @@ def dijkstra(filledGrid, startindex, cityio, neighbourhood):
             neighbourCell = filledGrid[neighbourIndex]
             
             # calculate time needed to go to neighbour
-            newTime = curCell.timeTo + getTimeForCell(neighbourIndex, cityio) # consider types of neighbours 
+            newTime = curCell.timeTo + getTimeForCell(neighbourIndex, useofinterest, cityio) # consider types of neighbours 
             if newTime < neighbourCell.timeTo:
                 if neighbourCell in openlist:
-                    openlist.remove(neighbourCell) # remove first and add again, to resort
+                    openlist.remove(neighbourCell) # remove first then add again, to resort
                 neighbourCell.timeTo = float(newTime) # set value for neighbours into gridcell
                 openlist.add(neighbourCell) # cell was cahnged, it can propagate change
 
-def recursiveNeighbourset(curCellIndex, filledGrid, neighbourhood, cityio: Table):
-    if filledGrid[curCellIndex] is None:
-        filledGrid[curCellIndex] = ResultCell()
-    curCell = filledGrid[curCellIndex]
-    
-    # iterate over neighbours
-    neighboursIndices = getNeighbouringGridCells(curCellIndex, cityio.ncols, cityio.nrows, neighbourhood)
-
-    madeChangeinNeighbours = False
-
-    for neighbourIndex in neighboursIndices:
-        if filledGrid[neighbourIndex] is None:
-            filledGrid[neighbourIndex] = ResultCell()
-        neighbourCell = filledGrid[neighbourIndex]
-        if neighbourCell.beenThere:
-            continue
-
-        # calculate time needed to go there
-        newTime = curCell.timeTo + getTimeForCell(neighbourIndex,cityio) # consider types of neighbours 
-        if newTime < neighbourCell.timeTo:
-            neighbourCell.timeTo = newTime # set value for neighbours into gridcell
-            madeChangeinNeighbours = True
-            
-
-        # start from each neighbour
-        recursiveNeighbourset(neighbourIndex, filledGrid, neighbourhood, cityio)
-        
-    if not madeChangeinNeighbours:
-        #this cell is done
-        curCell.beenThere = True
-
-def makeGeoJSON(filledGrid, cityio):
+def makeGeoJSON(filledGrids, cityio):
     resultjson = "{\"type\": \"FeatureCollection\",\"features\": [" # geojson front matter
 
-    # find all grid cells with type as in typejs
-    resultjson += appendPolyFeatures(filledGrid, cityio)
+    # append features for all grid cells
+    resultjson += appendPolyFeatures(filledGrids, cityio)
 
-    resultjson = resultjson[:-1] # trim trailing comma
     resultjson += "]}" # geojson end matter
     return resultjson
 
@@ -391,12 +355,16 @@ def run(endpoint=-1, token=None):
 
     cityio.updateGrid(endpoint, token)
 
-    seedpoints = getSeedPoints(cityio)
-    filledGrid = floodFill(seedpoints, cityio)
-    # print(filledGrid)
-    makeCSV(filledGrid,"test.csv",cityio)
-    resultjson = makeGeoJSON(filledGrid,cityio)
+    filledGrids = {}
+    for useofinterest in getFromCfg("usesOfInterest"):
+        seedpoints = getSeedPoints(useofinterest, cityio)
+        filledGrid = floodFill(seedpoints, useofinterest, cityio)
+        filledGrids[useofinterest]=filledGrid
+        # makeCSV(filledGrid,"test"+useofinterest+".csv",cityio)
+    
+    resultjson = makeGeoJSON(filledGrids,cityio)
     # writeFile("output.geojson", resultjson)
+
     # Also post result to cityIO
     data = json.loads(resultjson)
     gridHash = getCurrentState("meta/hashes/grid",endpoint, token)
