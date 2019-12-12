@@ -373,8 +373,8 @@ def run(endpoint=-1, token=None):
     sendToCityIO(data)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='calculate storm water amounts from cityIO.')
-    parser.add_argument('--endpoint', type=int, default=-1,help="endpoint url to choose from config.ini/input_urls")
+    parser = argparse.ArgumentParser(description='calculate walkability from cityIO.')
+    parser.add_argument('--endpoint', type=int, default=-1,help="endpoint url to choose from config.json/input_urls")
     args = parser.parse_args()
     print("endpoint",args.endpoint)
     oldHash = ""
