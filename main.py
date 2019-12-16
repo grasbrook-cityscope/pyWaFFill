@@ -42,7 +42,7 @@ class Table:
         # convert to geo coords
         return (new_x + self.origin[0], new_y + self.origin[1])
 
-def getFromCfg(key : str) -> str:
+def getFromCfg(key: str) -> str:
     #import os#os.path.dirname(os.path.realpath(__file__)+
     with open("config.json") as file:
         js = json.load(file)
@@ -62,6 +62,7 @@ def getCurrentState(topic="", endpoint=-1, token=None):
     if not r.status_code == 200:
         print("could not get from cityIO")
         print("Error code", r.status_code)
+        return {} 
 
     return r.json()
 
@@ -388,7 +389,7 @@ if __name__ == "__main__":
 
     while True:
         gridHash = getCurrentState("meta/hashes/grid", int(args.endpoint), token)
-        if gridHash != oldHash:
+        if gridHash != {} and gridHash != oldHash:
             run(int(args.endpoint))
             oldHash = gridHash
         else:
