@@ -5,6 +5,7 @@ from pyproj import Transformer
 from time import sleep
 import argparse
 from sortedcontainers import SortedList
+from typing import Optional
 
 class Table:
     cellSize = 0
@@ -48,6 +49,26 @@ def getFromCfg(key: str) -> str:
         js = json.load(file)
         return js[key]
 
+
+# returns the token for the endpoint
+# tokens.json is to be requested from admin
+def getToken(endpoint=-1) -> Optional[str]:
+    if endpoint == -1:
+        return None
+
+    try:
+        with open("tokens.json") as file:
+            js = json.load(file)
+            token = js['tokens'][endpoint]
+            if token == "":
+                token = None  # happens with empty file
+
+    except IOError:
+        token = None
+
+    return token
+
+
 def getCurrentState(topic="", endpoint=-1, token=None):
     if endpoint == -1 or endpoint == None:
         get_address = getFromCfg("input_url")+topic # default endpoint
@@ -57,8 +78,8 @@ def getCurrentState(topic="", endpoint=-1, token=None):
     if token is None:
         r = requests.get(get_address, headers={'Content-Type': 'application/json'})
     else: # with authentication
-        r = requests.get(get_address, headers={'Content-Type': 'application/json', 'Authorization': 'Bearer '+token})
-    
+        r = requests.get(get_address, headers={'Content-Type': 'application/json',
+                                               'Authorization': 'Bearer {}'.format(token).rstrip()})
     if not r.status_code == 200:
         print("could not get from cityIO")
         print("Error code", r.status_code)
@@ -75,8 +96,10 @@ def sendToCityIO(data, endpoint=-1, token=None):
     if token is None:
         r = requests.post(post_address, json=data, headers={'Content-Type': 'application/json'})
     else: # with authentication
-        r = requests.post(post_address, json=data, headers={'Content-Type': 'application/json', 'Authorization': 'Bearer '+token})
-    print(r)
+        r = requests.post(post_address, json=data,
+                          headers={'Content-Type': 'application/json',
+                                   'Authorization': 'Bearer {}'.format(token).rstrip()})
+        print(r)
     if not r.status_code == 200:
         print("could not post result to cityIO", post_address)
         print("Error code", r.status_code)
@@ -380,17 +403,12 @@ if __name__ == "__main__":
     print("endpoint",args.endpoint)
     oldHash = ""
 
-    try:
-        with open("token.txt") as f:
-            token=f.readline()
-        if token=="": token = None # happens with empty file
-    except IOError:
-        token=None
+    token = getToken(args.endpoint)
 
     while True:
         gridHash = getCurrentState("meta/hashes/grid", int(args.endpoint), token)
         if gridHash != {} and gridHash != oldHash:
-            run(int(args.endpoint))
+            run(int(args.endpoint), token)
             oldHash = gridHash
         else:
             print("waiting for grid change")
