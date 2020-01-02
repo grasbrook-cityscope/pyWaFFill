@@ -394,7 +394,7 @@ def run(endpoint=-1, token=None):
     gridHash = getCurrentState("meta/hashes/grid",endpoint, token)
     data["grid_hash"] = gridHash # state of grid, the results are based on
 
-    sendToCityIO(data)
+    sendToCityIO(data, endpoint, token)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='calculate walkability from cityIO.')
