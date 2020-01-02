@@ -7,8 +7,8 @@ if [ "$#" -gt 0 ]; then # if command line arguments were given
     # docker logs -f gracio_pywaffill_instance_$1  ## do not force logs when multiple instances start
 
 else # no command line args -> don't choose endpoint
-    docker stop gracio_pywaffill
-    docker rm gracio_pywaffill
-    docker run --name gracio_pywaffill -d gracio_pywaffill
-    docker logs -f gracio_pywaffill
+    docker stop gracio_pywaffill_instance
+    docker rm gracio_pywaffill_instance
+    docker run --name gracio_pywaffill_instance -d gracio_pywaffill
+    docker logs -f gracio_pywaffill_instance
 fi
