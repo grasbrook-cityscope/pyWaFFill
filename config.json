@@ -12,13 +12,13 @@
         "https://cityio.media.mit.edu/api/table/grasbrook_mantel/"
     ],
     "output_urls" : [
-        "https://cityio.media.mit.edu/api/table/update/grasbrook_silber/stormwater",
-        "https://cityio.media.mit.edu/api/table/update/grasbrook_lach/stormwater",
-        "https://cityio.media.mit.edu/api/table/update/grasbrook_sturm/stormwater",
-        "https://cityio.media.mit.edu/api/table/update/grasbrook_dreizehen/stormwater",
-        "https://cityio.media.mit.edu/api/table/update/grasbrook_herings/",
-        "https://cityio.media.mit.edu/api/table/update/grasbrook_eis/",
-        "https://cityio.media.mit.edu/api/table/update/grasbrook_mantel/"
+        "https://cityio.media.mit.edu/api/table/update/grasbrook_silber/walkability",
+        "https://cityio.media.mit.edu/api/table/update/grasbrook_lach/walkability",
+        "https://cityio.media.mit.edu/api/table/update/grasbrook_sturm/walkability",
+        "https://cityio.media.mit.edu/api/table/update/grasbrook_dreizehen/walkability",
+        "https://cityio.media.mit.edu/api/table/update/grasbrook_herings/walkability",
+        "https://cityio.media.mit.edu/api/table/update/grasbrook_eis/walkability",
+        "https://cityio.media.mit.edu/api/table/update/grasbrook_mantel/walkability"
     ],
     
     "input_crs" : 4326, 
