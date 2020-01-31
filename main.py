@@ -403,7 +403,12 @@ if __name__ == "__main__":
     print("endpoint",args.endpoint)
     oldHash = ""
 
-    token = getToken(args.endpoint)
+    try:
+        with open("token.txt") as f:
+            token = f.readline()
+        if token == "": token = None  # happens with empty file
+    except IOError:
+        token = None
 
     while True:
         gridHash = getCurrentState("meta/hashes/grid", int(args.endpoint), token)
