@@ -291,6 +291,15 @@ def getTimeForCell(cellindex, useofinterest, cityio: Table):
 
     # TODO: get speed factors from typedefs.json
     if celltype == "street":
+        if(getFromCfg("wheelchair")):
+            # check for accessibility
+            ramp = cityio.mapping[cell[cityio.typeidx]]["str_ramp"]
+            stairs = cityio.mapping[cell[cityio.typeidx]]["str_stairs"]
+            elevator = cityio.mapping[cell[cityio.typeidx]]["str_elevator"]
+            if stairs and not (ramp or elevator):
+                # print("not accessible!")
+                return float("inf")
+
         return 1.0 * walktime_minutes
 
     elif celltype == "open_space":

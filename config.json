@@ -26,5 +26,6 @@
     "output_crs": 4326,
 
     "usesOfInterest" : ["educational","culture","grocery"],
-    "walking_speed_kph" : 4
+    "walking_speed_kph" : 4,
+    "wheelchair" : false
 }
