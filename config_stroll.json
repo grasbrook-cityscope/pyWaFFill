@@ -1,0 +1,31 @@
+{
+    "input_url" : "https://cityio.media.mit.edu/api/table/grasbrook_test/",
+    "output_url": "https://cityio.media.mit.edu/api/table/update/grasbrook_test/walkability_stroller",
+
+    "input_urls" : [
+        "https://cityio.media.mit.edu/api/table/grasbrook_silber/",
+        "https://cityio.media.mit.edu/api/table/grasbrook_lach/",
+        "https://cityio.media.mit.edu/api/table/grasbrook_sturm/",
+        "https://cityio.media.mit.edu/api/table/grasbrook_dreizehen/",
+        "https://cityio.media.mit.edu/api/table/grasbrook_herings/",
+        "https://cityio.media.mit.edu/api/table/grasbrook_eis/",
+        "https://cityio.media.mit.edu/api/table/grasbrook_mantel/"
+    ],
+    "output_urls" : [
+        "https://cityio.media.mit.edu/api/table/update/grasbrook_silber/walkability_stroller",
+        "https://cityio.media.mit.edu/api/table/update/grasbrook_lach/walkability_stroller",
+        "https://cityio.media.mit.edu/api/table/update/grasbrook_sturm/walkability_stroller",
+        "https://cityio.media.mit.edu/api/table/update/grasbrook_dreizehen/walkability_stroller",
+        "https://cityio.media.mit.edu/api/table/update/grasbrook_herings/walkability_stroller",
+        "https://cityio.media.mit.edu/api/table/update/grasbrook_eis/walkability_stroller",
+        "https://cityio.media.mit.edu/api/table/update/grasbrook_mantel/walkability_stroller"
+    ],
+    
+    "input_crs" : 4326, 
+    "compute_crs": 32632,
+    "output_crs": 4326,
+
+    "usesOfInterest" : ["educational","culture","grocery"],
+    "walking_speed_kph" : 3.024,
+    "wheelchair" : false
+}
