@@ -1,6 +1,6 @@
 {
     "input_url" : "https://cityio.media.mit.edu/api/table/grasbrook_test/",
-    "output_url": "https://cityio.media.mit.edu/api/table/update/grasbrook_test/walkability_stroller",
+    "output_url": "https://cityio.media.mit.edu/api/table/update/grasbrook_test/walkability_child",
 
     "input_urls" : [
         "https://cityio.media.mit.edu/api/table/grasbrook_silber/",
@@ -12,13 +12,13 @@
         "https://cityio.media.mit.edu/api/table/grasbrook_mantel/"
     ],
     "output_urls" : [
-        "https://cityio.media.mit.edu/api/table/update/grasbrook_silber/walkability_stroller",
-        "https://cityio.media.mit.edu/api/table/update/grasbrook_lach/walkability_stroller",
-        "https://cityio.media.mit.edu/api/table/update/grasbrook_sturm/walkability_stroller",
-        "https://cityio.media.mit.edu/api/table/update/grasbrook_dreizehen/walkability_stroller",
-        "https://cityio.media.mit.edu/api/table/update/grasbrook_herings/walkability_stroller",
-        "https://cityio.media.mit.edu/api/table/update/grasbrook_eis/walkability_stroller",
-        "https://cityio.media.mit.edu/api/table/update/grasbrook_mantel/walkability_stroller"
+        "https://cityio.media.mit.edu/api/table/update/grasbrook_silber/walkability_child",
+        "https://cityio.media.mit.edu/api/table/update/grasbrook_lach/walkability_child",
+        "https://cityio.media.mit.edu/api/table/update/grasbrook_sturm/walkability_child",
+        "https://cityio.media.mit.edu/api/table/update/grasbrook_dreizehen/walkability_child",
+        "https://cityio.media.mit.edu/api/table/update/grasbrook_herings/walkability_child",
+        "https://cityio.media.mit.edu/api/table/update/grasbrook_eis/walkability_child",
+        "https://cityio.media.mit.edu/api/table/update/grasbrook_mantel/walkability_child"
     ],
     
     "input_crs" : 4326, 
