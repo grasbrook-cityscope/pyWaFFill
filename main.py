@@ -299,6 +299,9 @@ def getTimeForCell(cellindex, useofinterest, cityio: Table):
             if stairs and not (ramp or elevator):
                 # print("not accessible!")
                 return float("inf")
+            if elevator and not ramp:
+                elevatortime = 1.0
+                return 1.0 * walktime_minutes + elevatortime
 
         return 1.0 * walktime_minutes
 
