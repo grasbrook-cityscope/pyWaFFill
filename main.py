@@ -50,25 +50,6 @@ def getFromCfg(key: str) -> str:
         return js[key]
 
 
-# returns the token for the endpoint
-# tokens.json is to be requested from admin
-def getToken(endpoint=-1) -> Optional[str]:
-    if endpoint == -1:
-        return None
-
-    try:
-        with open("tokens.json") as file:
-            js = json.load(file)
-            token = js['tokens'][endpoint]
-            if token == "":
-                token = None  # happens with empty file
-
-    except IOError:
-        token = None
-
-    return token
-
-
 def getCurrentState(topic="", endpoint=-1, token=None):
     if endpoint == -1 or endpoint == None:
         get_address = getFromCfg("input_url")+topic # default endpoint
@@ -105,6 +86,36 @@ def sendToCityIO(data, endpoint=-1, token=None):
         print("Error code", r.status_code)
     else:
         print("Successfully posted to cityIO", post_address, r.status_code)
+
+def postToSlack(message, error):
+    try:
+        with open("webhook_slack.txt") as f:
+            webhook_slack = f.readline()
+        if webhook_slack == "": webhook_slack = None  # happens with empty file
+    except IOError:
+        webhook_slack = None
+
+    if (webhook_slack):
+        message = {
+            "text": message,
+        }
+        error = {
+            "text": error
+        }
+
+        for msg in [message, error]:
+            response = requests.post(
+                webhook_slack, data=json.dumps(msg),
+                headers={'Content-Type': 'application/json'}
+            )
+
+            if not response.status_code == 200:
+                print("could not post result to Slack")
+                print("Error code", response.status_code)
+            else:
+                print("Successfully posted to Slack", response.status_code)
+
+
 
 def PolyToGeoJSON(points, id, properties):
     ret = "{\"type\": \"Feature\",\"id\": \"" 
@@ -411,6 +422,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     print("endpoint",args.endpoint)
     oldHash = ""
+    updateIntervalSeconds = 5
 
     try:
         with open("token.txt") as f:
@@ -420,10 +432,18 @@ if __name__ == "__main__":
         token = None
 
     while True:
-        gridHash = getCurrentState("meta/hashes/grid", int(args.endpoint), token)
-        if gridHash != {} and gridHash != oldHash:
-            run(int(args.endpoint), token)
-            oldHash = gridHash
-        else:
-            print("waiting for grid change")
-            sleep(5)
+        try:
+            gridHash = getCurrentState("meta/hashes/grid", int(args.endpoint), token)
+            if gridHash != {} and gridHash != oldHash:
+                run(int(args.endpoint), token)
+                oldHash = gridHash
+            else:
+                print("waiting for grid change")
+                sleep(5)
+        # cityIO is down, wait for it to come up again
+        except requests.exceptions.Timeout as error:
+            postToSlack("cityIO is down", str(error))
+            sleep(6000)
+        # something else went wrong
+        except Exception as error:
+            postToSlack("PyWaFFill experienced an error", str(error))
