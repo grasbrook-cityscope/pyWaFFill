@@ -20,5 +20,5 @@ else # no command line args -> don't choose endpoint
     docker stop gracio_pywaffill_instance
     docker rm gracio_pywaffill_instance
     docker run --name gracio_pywaffill_instance -d gracio_pywaffill
-    docker logs -f gracio_pywaffill_instance
+    #docker logs -f gracio_pywaffill_instance
 fi
