@@ -75,17 +75,21 @@ def getCurrentState(topic="", endpoint=-1, token=None):
     else:
         get_address = getFromCfg("input_urls")[endpoint]+topic # user endpoint
 
-    if token is None:
-        r = requests.get(get_address, headers={'Content-Type': 'application/json'})
-    else: # with authentication
-        r = requests.get(get_address, headers={'Content-Type': 'application/json',
-                                               'Authorization': 'Bearer {}'.format(token).rstrip()})
-    if not r.status_code == 200:
-        print("could not get from cityIO")
-        print("Error code", r.status_code)
-        return {} 
+    try:
+        if token is None:
+            r = requests.get(get_address, headers={'Content-Type': 'application/json'})
+        else: # with authentication
+            r = requests.get(get_address, headers={'Content-Type': 'application/json',
+                                                'Authorization': 'Bearer {}'.format(token).rstrip()})
+        if not r.status_code == 200:
+            print("could not get from cityIO")
+            print("Error code", r.status_code)
+            return {} 
 
-    return r.json()
+        return r.json()
+    except requests.exceptions.RequestException as e:
+        print("CityIO error while GETting!" + e)
+        return {}
 
 def sendToCityIO(data, endpoint=-1, token=None):
     if endpoint == -1 or endpoint == None:
@@ -93,18 +97,22 @@ def sendToCityIO(data, endpoint=-1, token=None):
     else:
         post_address = getFromCfg("output_urls")[endpoint] # user endpoint
 
-    if token is None:
-        r = requests.post(post_address, json=data, headers={'Content-Type': 'application/json'})
-    else: # with authentication
-        r = requests.post(post_address, json=data,
-                          headers={'Content-Type': 'application/json',
-                                   'Authorization': 'Bearer {}'.format(token).rstrip()})
-        print(r)
-    if not r.status_code == 200:
-        print("could not post result to cityIO", post_address)
-        print("Error code", r.status_code)
-    else:
-        print("Successfully posted to cityIO", post_address, r.status_code)
+    try:
+        if token is None:
+            r = requests.post(post_address, json=data, headers={'Content-Type': 'application/json'})
+        else: # with authentication
+            r = requests.post(post_address, json=data,
+                            headers={'Content-Type': 'application/json',
+                                    'Authorization': 'Bearer {}'.format(token).rstrip()})
+            print(r)
+        if not r.status_code == 200:
+            print("could not post result to cityIO", post_address)
+            print("Error code", r.status_code)
+        else:
+            print("Successfully posted to cityIO", post_address, r.status_code)
+    except requests.exceptions.RequestException as e:
+        print("CityIO error while POSTing!" + e)
+        return 
 
 def PolyToGeoJSON(points, id, properties):
     ret = "{\"type\": \"Feature\",\"id\": \"" 
